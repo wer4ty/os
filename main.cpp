@@ -1,7 +1,9 @@
 #include <iostream>
 #include <unistd.h>
 #include <pwd.h>
+#include <sys/types.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <string>
 
 using namespace std;
@@ -10,6 +12,14 @@ class Shell {
 	private:  
 		string path;
 		string command;
+		string home;
+
+		void getHomeDir() {
+			char* homeDir;
+			if((homeDir = getenv("HOME")) == NULL ) {
+				home = getpwuid(getuid())->pw_dir;
+			} 
+		}
 
 		void getCurrentDir() {
 			char buf[1024];
@@ -36,17 +46,20 @@ class Shell {
 
 		void eval(string command) {
 			int p = 0; // flag for check if command is in list of supported commands
-			if (command == "exit") { exit(1); p=1; } 
+			if (command == "exit" || cin.eof()) { exit(1); } 
 			if (command == "cd")  { cout << command << endl;  p=1; }
 
-			
 			if ( p == 0) { perror("Not found this command"); }
 			
 		}
 
 		void start() {
+			// init
+			Shell::getHomeDir();
 			Shell::getCurrentDir();
-			cout << "Welcome to _EBash terminal" << endl;
+			
+
+			cout << "Welcome to _EBash terminal " << home << endl;
 			while (1) {
 				Shell::read();
 				Shell::eval(command);
