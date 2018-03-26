@@ -3,10 +3,10 @@
 #include <string>
 #include <errno.h>
 #include <pwd.h>
+#include <cstring>
 #include <sys/types.h>
-#include <algorithm>
-#include <list>
 
+//#include <algorithm>
 //#include <stdlib.h>
 
 
@@ -17,7 +17,9 @@ class Shell {
 		string path;
 		string command;
 		string home;
-		list<string> tokens;
+
+		int tokens_counter;
+		char* tokens;
 
 		void getHomeDir() {
 				home = getpwuid(getuid())->pw_dir;
@@ -39,12 +41,23 @@ class Shell {
 			cout << chdir_res << endl;
 		}
 
-		list<string> tokenize(string line) {
-			string buf;
-			stringstream ss(line);
+		/*void clearTokens() {
+			for (int i=0; i < tokens_counter; i++) { tokens[i] = NULL ; }
+				tokens_counter = 0
+		}*/
 
-			while (ss >> buf) tokens.push_back(buf);
-			return tokens;
+		void tokenize(string command_line) {
+			const char* str = command_line.c_str();
+
+			char * duplicate = strdup(str);
+
+    		char* chars_array = strtok(duplicate, " ");
+    		while(chars_array) {
+    			tokens_counter++;
+        		cout << chars_array << '\n';
+        		chars_array = strtok(NULL, "#:");
+    		}
+
 		}
 
 	public:
@@ -62,11 +75,18 @@ class Shell {
 
 		void eval(string command) {
 			int p = 0; // flag for check if command is in list of supported commands
+
+			Shell::tokenize(command);
+			
 			if (command == "exit" || cin.eof()) { exit(1); } 
-			if (command == "cd")  { Shell::changeDir(command);  p=1; }
+			if (command == "cd")  { 
+				Shell::changeDir(command);  
+				p=1; 
+			}
 
 			if ( p == 0) { perror("Not found this command"); }
 			
+			//Shell::clearTokens();
 		}
 
 		void start() {
@@ -74,7 +94,6 @@ class Shell {
 			Shell::getHomeDir();
 			Shell::getCurrentDir();
 			
-
 			cout << "Welcome to _EBash terminal " << endl;
 			while (1) {
 				Shell::read();
