@@ -27,7 +27,11 @@ class Shell {
 			char buf[1024];
 			if(getcwd(buf, sizeof(buf)) != NULL ) {
 				path = buf;
-				path.replace(path.begin(), path.end()-home.length(), "~/");
+				
+				if(path.length() > home.length()) {
+					path.erase(0, home.size());
+					path.insert(0, 1,'~');
+				}
 			}
 			else {
 				perror("getcwd() error");
@@ -35,9 +39,19 @@ class Shell {
 		}
 
 		void changeDir(string newPath) {
-			int chdir_res = chdir(newPath.c_str());
-			Shell::getCurrentDir();
-			cout << chdir_res << endl;
+			if (!newPath.empty()) {
+				int chdir_res = chdir(newPath.c_str());
+				if (chdir_res >= 0) {
+					
+					Shell::getCurrentDir();
+
+				}
+				else  perror("Error");
+				
+			}
+			else {
+					perror("Error");
+				}
 
 		}
 
@@ -76,16 +90,18 @@ class Shell {
 
 		void eval(string command) {
 			int p = 0; // flag for check if command is in list of supported commands
+			
+			//string exec_command;
+			//char* args[1024];
 
 			Shell::tokenize(command, tokens);
 
-			if (std::string str(tokens[0]) == "exit" 
-				|| cin.eof()) 
-				{ exit(1); } 
+			if (tokens[0] == "exit" || cin.eof()) 
+				{ exit(0); } 
 			
 
-			if (strcmp(tokens[0], "cd") == 0 )  { 
-				Shell::changeDir(command);  
+			if (tokens[0] == "cd")  { 
+				Shell::changeDir(tokens[1]);  
 				p=1; 
 			}
 
