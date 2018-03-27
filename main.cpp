@@ -1,6 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <string>
+#include <cstring>
 #include <cstdlib>
 #include <errno.h>
 #include <pwd.h>
@@ -138,7 +139,6 @@ class Shell {
 				// child process
 				case 0:
 					char ** args = new char*[tokens.size()];
-					unsigned int i;
 					for (i=0; i< tokens.size(); i++) {
 						args[i] = new char[tokens.size() + 1];
 						strcpy(args[i], tokens[i].c_str());
