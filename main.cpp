@@ -5,9 +5,8 @@
 #include <pwd.h>
 #include <cstring>
 #include <sys/types.h>
+#include <vector>
 
-//#include <algorithm>
-//#include <stdlib.h>
 
 
 using namespace std;
@@ -18,8 +17,7 @@ class Shell {
 		string command;
 		string home;
 
-		int tokens_counter;
-		char* tokens;
+		vector<string> tokens;
 
 		void getHomeDir() {
 				home = getpwuid(getuid())->pw_dir;
@@ -38,26 +36,29 @@ class Shell {
 
 		void changeDir(string newPath) {
 			int chdir_res = chdir(newPath.c_str());
+			Shell::getCurrentDir();
 			cout << chdir_res << endl;
+
 		}
 
-		/*void clearTokens() {
-			for (int i=0; i < tokens_counter; i++) { tokens[i] = NULL ; }
-				tokens_counter = 0
-		}*/
+		void clearTokens() {
+				tokens.clear();
+		}
 
-		void tokenize(string command_line) {
-			const char* str = command_line.c_str();
+		void tokenize(string str, vector<string> &v) {
+			size_t start = str.find_first_not_of(" "), end=start;
 
-			char * duplicate = strdup(str);
+			while (start != string::npos) {
+				end = str.find(" ", start);
+				v.push_back(str.substr(start, end-start));
+				start = str.find_first_not_of(" ", end);
+			}
+		}
 
-    		char* chars_array = strtok(duplicate, " ");
-    		while(chars_array) {
-    			tokens_counter++;
-        		cout << chars_array << '\n';
-        		chars_array = strtok(NULL, "#:");
-    		}
-
+		void printTokens(vector<string> v) {
+			for (unsigned int i=0; i<v.size(); i++) {
+				cout << v[i] << endl;
+			}
 		}
 
 	public:
@@ -76,17 +77,23 @@ class Shell {
 		void eval(string command) {
 			int p = 0; // flag for check if command is in list of supported commands
 
-			Shell::tokenize(command);
+			Shell::tokenize(command, tokens);
+
+			if (std::string str(tokens[0]) == "exit" 
+				|| cin.eof()) 
+				{ exit(1); } 
 			
-			if (command == "exit" || cin.eof()) { exit(1); } 
-			if (command == "cd")  { 
+
+			if (strcmp(tokens[0], "cd") == 0 )  { 
 				Shell::changeDir(command);  
 				p=1; 
 			}
 
+			Shell::printTokens(tokens);
+
 			if ( p == 0) { perror("Not found this command"); }
 			
-			//Shell::clearTokens();
+			Shell::clearTokens();
 		}
 
 		void start() {
