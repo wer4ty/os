@@ -4,9 +4,8 @@
 #include <cstdlib>
 #include <errno.h>
 #include <pwd.h>
-#include <sys/types.h>
 #include <vector>
-
+#include <sys/types.h>
 
 
 using namespace std;
@@ -125,6 +124,52 @@ class Shell {
 			}
 		}
 
+		void runProcess(vector<string> v) {
+			int status;
+			int pid;
+
+			switch(pid = fork()) {
+				
+				case -1:
+					cout << "Error creating process" << endl;
+					exit(-1);
+
+
+				// child process
+				case 0:
+					char ** args = new char*[tokens.size()];
+					unsigned int i;
+					for (i=0; i< tokens.size(); i++) {
+						args[i] = new char[tokens.size() + 1];
+						strcpy(args[i], tokens[i].c_str());
+					}
+
+					execvp(tokens[0].c_str(), args); // run external process
+
+					// clean up memory
+					for (i=0; i<tokens.size(); i++) 
+						delete [] args[i];
+					
+					delete [] args;
+
+				break;
+
+				// parent process
+				default:
+
+					if(v[v.size()-1] == "&") { // deamon process (deamon runs parallel with parent process)
+						 cout << "[" << pid << "]" << endl;
+						}
+						
+					 else { // regular process (wait while child process finish)  
+						//wait(&status);
+						
+						}
+
+				break;
+			}
+		}
+
 	public:
 		Shell() {
 			path = "~/";
@@ -152,6 +197,11 @@ class Shell {
 
 			if (tokens[0] == "cd")  { 
 				Shell::changeDir(tokens[1]);  
+			}
+
+			// run external processes
+			else {
+				Shell::runProcess(tokens);
 			}
 
 			
