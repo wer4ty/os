@@ -1,9 +1,9 @@
 #include <iostream>
 #include <unistd.h>
 #include <string>
+#include <cstdlib>
 #include <errno.h>
 #include <pwd.h>
-#include <cstring>
 #include <sys/types.h>
 #include <vector>
 
@@ -16,6 +16,7 @@ class Shell {
 		string path;
 		string command;
 		string home;
+		int chdir_status;
 
 		vector<string> tokens;
 
@@ -38,10 +39,58 @@ class Shell {
 			}
 		}
 
+		bool isCapital(char a) {
+			if (a >= 'A' && a <= 'X') return true;
+			return false;
+		}
+
+		bool isLower(char a) {
+			if (a >= 'a' && a <= 'z') return true;
+			return false;
+		}
+
+		bool isNum(char a) {
+			if (a >= '0' && a <= '9') return true;
+			return false;
+		}
+
+		string parsing(string arg) {
+			for (unsigned int i=0; i<arg.length(); i++) {
+				if (arg[i] == '~') {
+					arg.erase(i,1); // remove ~
+					arg.insert(0, home); // add from start home directory
+				}
+
+				if (arg[i] == '$' && arg[i+1] == '?') {
+					arg.erase(i, 2); // remove $?
+					string tmp = to_string(chdir_status);
+					arg.insert(i, tmp);
+				}
+
+				// variables $VAR
+				if (arg[i] == '$' && isCapital(arg[i+1])) {
+					string var_name;
+					unsigned int j=i+1;
+					while (  isCapital(arg[j]) || isLower(arg[j]) || isNum(arg[j]) ) {
+						var_name.push_back(arg[j]);
+						j++;
+					}
+					
+					cout << var_name << endl;
+					char* var_value = getenv(var_name.c_str());
+					if (var_value != NULL) {
+						cout << var_value << endl;
+					}
+				}
+			}
+			return arg;
+		}
+
 		void changeDir(string newPath) {
 			if (!newPath.empty()) {
-				int chdir_res = chdir(newPath.c_str());
-				if (chdir_res >= 0) {
+				
+				chdir_status = chdir(newPath.c_str());
+				if (chdir_status >= 0) {
 					
 					Shell::getCurrentDir();
 
@@ -89,12 +138,12 @@ class Shell {
 		}
 
 		void eval(string command) {
-			int p = 0; // flag for check if command is in list of supported commands
-			
-			//string exec_command;
-			//char* args[1024];
-
+		
 			Shell::tokenize(command, tokens);
+
+			// parsing
+			for (unsigned int k=1; k < tokens.size(); k++) 
+				tokens[k] = Shell::parsing(tokens[k]);
 
 			if (tokens[0] == "exit" || cin.eof()) 
 				{ exit(0); } 
@@ -102,12 +151,8 @@ class Shell {
 
 			if (tokens[0] == "cd")  { 
 				Shell::changeDir(tokens[1]);  
-				p=1; 
 			}
 
-			Shell::printTokens(tokens);
-
-			if ( p == 0) { perror("Not found this command"); }
 			
 			Shell::clearTokens();
 		}
@@ -128,7 +173,7 @@ class Shell {
 
 int main(int argc, char* argv[]) {
 
-	//for (int i=0; i < argc; i++) { cout << argv[i] << endl; }
+	//for (int i=0; i < argc; i++) { cout << env[i] << endl; }
 
 	Shell* s = new Shell;
 	s->start();
