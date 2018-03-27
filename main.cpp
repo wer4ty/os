@@ -76,13 +76,14 @@ class Shell {
 						j++;
 					}
 					
-					cout << var_name << endl;
 					char* var_value = getenv(var_name.c_str());
 					if (var_value != NULL) {
-						cout << var_value << endl;
+						arg.erase(i, i+var_name.size()+1); // +1 because of $ at the beginning
+						arg.insert(i, var_value);
 					}
 				}
 			}
+			cout << arg << endl;
 			return arg;
 		}
 
