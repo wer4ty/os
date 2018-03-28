@@ -6,7 +6,9 @@
 #include <errno.h>
 #include <pwd.h>
 #include <vector>
+#include <wait.h>
 #include <sys/types.h>
+#include <time.h>
 
 
 using namespace std;
@@ -17,8 +19,13 @@ class Shell {
 		string command;
 		string home;
 		int chdir_status;
+		int proc_status = 0;
+		clock_t exec_time;
+		int exit_status = 0;
 
 		vector<string> tokens;
+		char ** args;
+		int args_len;
 
 		void getHomeDir() {
 				home = getpwuid(getuid())->pw_dir;
@@ -37,6 +44,11 @@ class Shell {
 			else {
 				perror("getcwd() error");
 			}
+		}
+
+		void args_length() {
+			for(unsigned int i=0;args[i]!=NULL;i++)
+  			args_len += strlen(args[i]);
 		}
 
 		bool isCapital(char a) {
@@ -83,7 +95,6 @@ class Shell {
 					}
 				}
 			}
-			cout << arg << endl;
 			return arg;
 		}
 
@@ -105,8 +116,16 @@ class Shell {
 
 		}
 
-		void clearTokens() {
+		void clearMemory() {
+
+				for (int i=0; i<args_len; i++) 
+						delete [] args[i];
+					delete [] args;
+
+				args_len = 0;
+
 				tokens.clear();
+				cin.clear();
 		}
 
 		void tokenize(string str, vector<string> &v) {
@@ -125,8 +144,12 @@ class Shell {
 			}
 		}
 
+		void printArgs() {
+			for(unsigned int i=0;args[i]!=NULL;i++)
+  			cout << args[i] << endl;
+		}
+
 		void runProcess(vector<string> v) {
-			int *status = 0;
 			int pid;
 			switch(pid = fork()) {
 				
@@ -139,19 +162,21 @@ class Shell {
 				// child process
 				case 0:
 				   {
-					char ** args = new char*[tokens.size()];
-					for (unsigned int i=0; i< tokens.size(); i++) {
-						args[i] = new char[tokens.size() + 1];
+					args = new char*[tokens.size()];
+					for (unsigned int i=0; i< tokens.size(); i++, args_len++) {
+						args[i] = new char[tokens[i].size() + 1];
 						strcpy(args[i], tokens[i].c_str());
 					}
 
-					execvp(tokens[0].c_str(), args); // run external process
+					cout << "\tArgs: [" << endl;
+					printArgs();
+					cout << "]" << endl;
 
-					// clean up memory
-					for (unsigned int i=0; i<tokens.size(); i++) 
-						delete [] args[i];
+					cout << "\tTokens [" << endl;
+					printTokens(tokens);
+					cout << "]" << endl;
 					
-					delete [] args;
+					execvp(tokens[0].c_str(), args); // run external process					
 
 				break;
 				   }
@@ -164,8 +189,11 @@ class Shell {
 						}
 						
 					 else { // regular process (wait while child process finish)  
-						wait(&status);
-						
+						if (waitpid(pid, &proc_status, 0) == -1) {
+							exit_status = -1;
+                            exit(1);
+						}
+						exit_status = WEXITSTATUS(proc_status);
 						}
 
 					break;
@@ -177,6 +205,7 @@ class Shell {
 		Shell() {
 			path = "~/";
 			command = "";
+			cout << "Welcome to _EBash terminal " << endl;
 		}
 
 		~Shell() {}
@@ -207,8 +236,6 @@ class Shell {
 				Shell::runProcess(tokens);
 			}
 
-			
-			Shell::clearTokens();
 		}
 
 		void start() {
@@ -216,10 +243,14 @@ class Shell {
 			Shell::getHomeDir();
 			Shell::getCurrentDir();
 			
-			cout << "Welcome to _EBash terminal " << endl;
 			while (1) {
+				Shell::clearMemory();
 				Shell::read();
+
+				exec_time = clock();
 				Shell::eval(command);
+
+				cout << "\n\t[[=== Time: { " << (double)(clock() - exec_time) / CLOCKS_PER_SEC << "sec } Status: { " << exit_status << " } ===]]" << endl; 
 			}
 		}
 };
