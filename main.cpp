@@ -1,6 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <string>
+#include <list>
 #include <cstring>
 #include <cstdlib>
 #include <errno.h>
@@ -9,6 +10,7 @@
 #include <wait.h>
 #include <sys/types.h>
 #include <time.h>
+
 
 
 using namespace std;
@@ -139,14 +141,25 @@ class Shell {
 		}
 
 		void printTokens(vector<string> v) {
-			for (unsigned int i=0; i<v.size(); i++) {
-				cout << v[i] << endl;
-			}
+			cout << "\tTokens [ ";
+			for (unsigned int i=0; i<v.size(); i++) 
+				cout << v[i] << " ";
+			cout << "]" << endl;
+		}
+
+		void convertTokensToArgs(vector<string> v) {
+			args = new char*[v.size()];
+					for (unsigned int i=0; i< v.size(); i++, args_len++) {
+						args[i] = new char[v[i].size() + 1];
+						strcpy(args[i], v[i].c_str());
+					}
 		}
 
 		void printArgs() {
+			cout << "\tArgs: [";
 			for(unsigned int i=0;args[i]!=NULL;i++)
-  			cout << args[i] << endl;
+  				cout << args[i] << " ";
+			cout << "]" << endl;
 		}
 
 		void runProcess(vector<string> v) {
@@ -162,19 +175,14 @@ class Shell {
 				// child process
 				case 0:
 				   {
-					args = new char*[tokens.size()];
-					for (unsigned int i=0; i< tokens.size(); i++, args_len++) {
-						args[i] = new char[tokens[i].size() + 1];
-						strcpy(args[i], tokens[i].c_str());
-					}
+					convertTokensToArgs(tokens);
 
-					cout << "\tArgs: [" << endl;
-					printArgs();
-					cout << "]" << endl;
+					cout << tokens.size() << endl;
 
-					cout << "\tTokens [" << endl;
 					printTokens(tokens);
-					cout << "]" << endl;
+					printArgs();
+					
+
 					
 					execvp(tokens[0].c_str(), args); // run external process					
 
@@ -233,6 +241,7 @@ class Shell {
 
 			// run external processes
 			else {
+				//printTokens(tokens);
 				Shell::runProcess(tokens);
 			}
 
@@ -245,6 +254,7 @@ class Shell {
 			
 			while (1) {
 				Shell::clearMemory();
+				cout << "Tokens Size: "<< tokens.size() << endl;
 				Shell::read();
 
 				exec_time = clock();
