@@ -126,20 +126,21 @@ class Shell {
 		}
 
 		void runProcess(vector<string> v) {
-			int status;
+			int *status = 0;
 			int pid;
-
 			switch(pid = fork()) {
 				
 				case -1:
+					{
 					cout << "Error creating process" << endl;
 					exit(-1);
-
+					}
 
 				// child process
 				case 0:
+				   {
 					char ** args = new char*[tokens.size()];
-					for (i=0; i< tokens.size(); i++) {
+					for (unsigned int i=0; i< tokens.size(); i++) {
 						args[i] = new char[tokens.size() + 1];
 						strcpy(args[i], tokens[i].c_str());
 					}
@@ -147,26 +148,28 @@ class Shell {
 					execvp(tokens[0].c_str(), args); // run external process
 
 					// clean up memory
-					for (i=0; i<tokens.size(); i++) 
+					for (unsigned int i=0; i<tokens.size(); i++) 
 						delete [] args[i];
 					
 					delete [] args;
 
 				break;
+				   }
 
 				// parent process
 				default:
-
+					{
 					if(v[v.size()-1] == "&") { // deamon process (deamon runs parallel with parent process)
 						 cout << "[" << pid << "]" << endl;
 						}
 						
 					 else { // regular process (wait while child process finish)  
-						//wait(&status);
+						wait(&status);
 						
 						}
 
-				break;
+					break;
+					}
 			}
 		}
 
