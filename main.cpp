@@ -157,6 +157,7 @@ class Shell {
 
 		void runProcess(char *arg[]) {
 			pid_t pid;
+			pid_t zombie_proc;
 
 			// prepare to run external command
 			if ( strcmp(arg[args_len-1], "&") == 0 ) {
@@ -195,9 +196,13 @@ class Shell {
 
 						// regular process
 						else {
-							while (wait(&proc_status) != pid) {
-							// wait
+							wait(&proc_status);
+
+							// zombie handle
+							while ((zombie_proc = waitpid(-1, &proc_status, WNOHANG)) > 0) {
+								cout << "exited, status=" << proc_status << endl;
 							}
+
 						}
 
 				break;
