@@ -21,6 +21,7 @@ class Shell {
 		string home;
 		int chdir_status;
 		int proc_status;
+		bool deamon_flag;
 		clock_t exec_time;
 
 		char command[SIZE];
@@ -156,23 +157,28 @@ class Shell {
 
 		void runProcess(char *arg[]) {
 			pid_t pid;
-			int check;
 
 			// prepare to run external command
-			
+			if ( strcmp(arg[args_len-1], "&") == 0 ) {
+					arg[args_len-1] = NULL;
+					args_len--;
+					deamon_flag = true;
+			}
+			else {
+				deamon_flag = false;
+			}
+
 			switch(pid = fork()) {
-				
+
 				case -1: {
 					perror("Fork Error:");
-					//return EXIT_FAILURE;
 					exit(1);
 				}
 
 				// child process
-				case 0: {										
+				case 0: {									
 					if(execvp(*arg, arg) < 0) {
 						perror("Execvp");
-						//return EXIT_FAILURE;
 						exit(1);
 					}					
 
@@ -181,8 +187,17 @@ class Shell {
 
 				// parent process
 				default: {
-						while (wait(&check) != pid) {
-						// wait
+
+						// deamon
+						if (deamon_flag) {
+							cout << "[" << pid << "]" << endl;
+						}
+
+						// regular process
+						else {
+							while (wait(&proc_status) != pid) {
+							// wait
+							}
 						}
 
 				break;
@@ -233,14 +248,12 @@ class Shell {
 				exec_time = clock();
 				Shell::eval(command);
 
-				cout << "\n\t[[=== Time: { " << (double)(clock() - exec_time) / CLOCKS_PER_SEC << "sec } Status: { " << proc_status << " } ===]]" << endl; 
+				cout << "\n\t\t[[ ===--- Time: { " << (double)(clock() - exec_time) / CLOCKS_PER_SEC << "sec } Status: { " << proc_status << " } ---===]]" << endl; 
 
 				Shell::cleanMemory(args);
 			}
 		}
 };
-
-// ############################################# TMP TEST ############
 
 int main() {
 	Shell* s = new Shell;
