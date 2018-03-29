@@ -157,13 +157,19 @@ class Shell {
 
 		void printArgs() {
 			cout << "\tArgs: [";
-			for(unsigned int i=0;args[i]!=NULL;i++)
+			for(unsigned int i=0; i<tokens.size(); i++)
   				cout << args[i] << " ";
 			cout << "]" << endl;
 		}
 
 		void runProcess(vector<string> v) {
 			int pid;
+
+			// prepare to run external command
+			
+			convertTokensToArgs(tokens);
+			//printArgs();
+
 			switch(pid = fork()) {
 				
 				case -1:
@@ -174,16 +180,7 @@ class Shell {
 
 				// child process
 				case 0:
-				   {
-					convertTokensToArgs(tokens);
-
-					cout << tokens.size() << endl;
-
-					printTokens(tokens);
-					printArgs();
-					
-
-					
+				   {										
 					execvp(tokens[0].c_str(), args); // run external process					
 
 				break;
@@ -197,10 +194,7 @@ class Shell {
 						}
 						
 					 else { // regular process (wait while child process finish)  
-						if (waitpid(pid, &proc_status, 0) == -1) {
-							exit_status = -1;
-                            exit(1);
-						}
+						waitpid(pid, &proc_status, 0);
 						exit_status = WEXITSTATUS(proc_status);
 						}
 
@@ -241,7 +235,6 @@ class Shell {
 
 			// run external processes
 			else {
-				//printTokens(tokens);
 				Shell::runProcess(tokens);
 			}
 
@@ -254,7 +247,6 @@ class Shell {
 			
 			while (1) {
 				Shell::clearMemory();
-				cout << "Tokens Size: "<< tokens.size() << endl;
 				Shell::read();
 
 				exec_time = clock();
