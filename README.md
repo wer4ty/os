@@ -1,2 +1,3 @@
 # os
-symple operational system c++ class (cd, exit, execute external processes)
+easy shell emulator c++ class (cd, exit, execute external processes)
+support deamons, handle by zombies
