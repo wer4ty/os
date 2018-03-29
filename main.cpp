@@ -11,22 +11,21 @@
 #include <sys/types.h>
 #include <time.h>
 
-
+#define SIZE 1024
 
 using namespace std;
 
 class Shell {
 	private:  
 		string path;
-		string command;
 		string home;
 		int chdir_status;
 		int proc_status;
 		clock_t exec_time;
 
-		vector<string> tokens;
-		char ** args;
-		int args_len;
+		char command[SIZE];
+		char *args[SIZE];
+		int args_len = 0;
 
 		void getHomeDir() {
 				home = getpwuid(getuid())->pw_dir;
@@ -67,7 +66,9 @@ class Shell {
 			return false;
 		}
 
-		string parsing(string arg) {
+		void parsing(char c[]) {
+			string arg = string(c);
+
 			for (unsigned int i=0; i<arg.length(); i++) {
 				if (arg[i] == '~') {
 					arg.erase(i,1); // remove ~
@@ -96,7 +97,7 @@ class Shell {
 					}
 				}
 			}
-			return arg;
+			c =  strdup(const_cast<char *>(arg.c_str()));
 		}
 
 		void changeDir(string newPath) {
@@ -117,126 +118,92 @@ class Shell {
 
 		}
 
-		void clearMemory() {
 
-				for (int i=0; i<args_len; i++) 
-						delete [] args[i];
-					delete [] args;
 
-				args_len = 0;
-
-				tokens.clear();
-				cin.clear();
-		}
-
-		void tokenize(string str, vector<string> &v) {
-			size_t start = str.find_first_not_of(" "), end=start;
-
-			while (start != string::npos) {
-				end = str.find(" ", start);
-				v.push_back(str.substr(start, end-start));
-				start = str.find_first_not_of(" ", end);
+		void tokenize(char *c, char *argv[]) {
+			while (*c != '\0') {
+				while (*c == ' ' || *c == '\t' || *c == '\n') {
+					*c++ = '\0'; args_len++;
+				}
+				*argv++ = c;
+				while (*c != '\0' && *c != ' ' && *c != '\t' && *c != '\n') {
+					c++;
+				}
 			}
+			*argv = '\0';
 		}
 
-		void printTokens(vector<string> v) {
-			cout << "\tTokens [ ";
-			for (unsigned int i=0; i<v.size(); i++) 
-				cout << v[i] << " ";
-			cout << "]" << endl;
-		}
 
-		void convertTokensToArgs(vector<string> v) {
-			args = new char*[v.size()];
-					for (unsigned int i=0; i< v.size(); i++, args_len++) {
-						args[i] = new char[v[i].size() + 1];
-						strcpy(args[i], v[i].c_str());
-					}
-		}
-
-		void printArgs() {
-			cout << "\tArgs: [";
-			for(unsigned int i=0; i<tokens.size(); i++)
-  				cout << args[i] << " ";
-			cout << "]" << endl;
-		}
-
-		void runProcess(vector<string> v) {
+		void runProcess(char *argv[]) {
 			pid_t pid;
+			int check;
 
 			// prepare to run external command
 			
-			convertTokensToArgs(tokens);
-			printArgs();
-
 			switch(pid = fork()) {
 				
-				case -1:
-					{
+				case -1: {
 					perror("Fork Error:");
-					exit(-1);
-					}
+					//return EXIT_FAILURE;
+					exit(1);
+				}
 
 				// child process
-				case 0:
-				   {										
-					execvp(tokens[0].c_str(), args); // run external process					
+				case 0: {										
+					if(execvp(*argv, argv) < 0) {
+						perror("Execvp");
+						//return EXIT_FAILURE;
+						exit(1);
+					}					
 
 				break;
-				   }
+				}
 
 				// parent process
-				default:
-					{
-					if(v[v.size()-1] == "&") { // deamon process (deamon runs parallel with parent process)
-						 cout << "[" << pid << "]" << endl;
-						}
-						
-					 else { // regular process (wait while child process finish)  
-						
-						//wait(&proc_status);
-						waitpid(-1, &proc_status,0);
-						//exit_status = WEXITSTATUS(proc_status);
+				default: {
+						while (wait(&check) != pid) {
+						// wait
 						}
 
-					break;
-					}
+				break;
+				}
+
 			}
 		}
 
 	public:
-		Shell() {
-			path = "~/";
-			command = "";
-			cout << "Welcome to _EBash terminal " << endl;
-		}
+		Shell() { cout << "Welcome to _EBash terminal " << endl; }
 
 		~Shell() {}
 
 		void read() {
+			//clean 
+			args_len = 0;
+			cin.clear();
+
 			cout << "$_EBash "+path+ ": ";
-			getline(cin, command); 
+			cin.getline(command, SIZE);
 		}
 
-		void eval(string command) {
+		void eval(char command[]) {
 		
-			Shell::tokenize(command, tokens);
+			Shell::tokenize(command, args);
 
 			// parsing
-			for (unsigned int k=1; k < tokens.size(); k++) 
-				tokens[k] = Shell::parsing(tokens[k]);
+			for (int k=1; k < args_len; k++) 
+				Shell::parsing(args[k]);
 
-			if (tokens[0] == "exit" || cin.eof()) 
+			if ( (strcmp(args[0], "exit") == 0) || cin.eof()) 
 				{ exit(0); } 
 			
 
-			if (tokens[0] == "cd")  { 
-				Shell::changeDir(tokens[1]);  
+			if (strcmp(args[0], "cd") == 0)  { 
+				Shell::changeDir(args[1]);  
 			}
 
 			// run external processes
 			else {
-				Shell::runProcess(tokens);
+				Shell::runProcess(args);
 			}
 
 		}
@@ -247,7 +214,6 @@ class Shell {
 			Shell::getCurrentDir();
 			
 			while (1) {
-				Shell::clearMemory();
 				Shell::read();
 
 				exec_time = clock();
@@ -258,14 +224,14 @@ class Shell {
 		}
 };
 
+// ############################################# TMP TEST ############
 
 int main(int argc, char* argv[]) {
-
-	//for (int i=0; i < argc; i++) { cout << env[i] << endl; }
-
 	Shell* s = new Shell;
-	s->start();
-	
+	s->start();	
 	delete s;
+
+
+
 	return 0;
 }
