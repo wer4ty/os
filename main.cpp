@@ -66,38 +66,42 @@ class Shell {
 			return false;
 		}
 
-		void parsing(char c[]) {
-			string arg = string(c);
+		void parsing(char* c[]) {
+			string arg;
 
-			for (unsigned int i=0; i<arg.length(); i++) {
-				if (arg[i] == '~') {
-					arg.erase(i,1); // remove ~
-					arg.insert(0, home); // add from start home directory
-				}
+			for (int k = 1; k < args_len; k++) {
+			arg = string(c[k]);
 
-				if (arg[i] == '$' && arg[i+1] == '?') {
-					arg.erase(i, 2); // remove $?
-					string tmp = to_string(chdir_status);
-					arg.insert(i, tmp);
-				}
-
-				// variables $VAR
-				if (arg[i] == '$' && isCapital(arg[i+1])) {
-					string var_name;
-					unsigned int j=i+1;
-					while (  isCapital(arg[j]) || isLower(arg[j]) || isNum(arg[j]) ) {
-						var_name.push_back(arg[j]);
-						j++;
+				for (unsigned int i=0; i<arg.length(); i++) {
+					if (arg[i] == '~') {
+						arg.erase(i,1); // remove ~
+						arg.insert(0, home); // add from start home directory
 					}
-					
-					char* var_value = getenv(var_name.c_str());
-					if (var_value != NULL) {
-						arg.erase(i, i+var_name.size()+1); // +1 because of $ at the beginning
-						arg.insert(i, var_value);
+
+					if (arg[i] == '$' && arg[i+1] == '?') {
+						arg.erase(i, 2); // remove $?
+						string tmp = to_string(chdir_status);
+						arg.insert(i, tmp);
+					}
+
+					// variables $VAR
+					if (arg[i] == '$' && isCapital(arg[i+1])) {
+						string var_name;
+						unsigned int j=i+1;
+						while (  isCapital(arg[j]) || isLower(arg[j]) || isNum(arg[j]) ) {
+							var_name.push_back(arg[j]);
+							j++;
+						}
+						
+						char* var_value = getenv(var_name.c_str());
+						if (var_value != NULL) {
+							arg.erase(i, i+var_name.size()+1); // +1 because of $ at the beginning
+							arg.insert(i, var_value);
+						}
 					}
 				}
+				c[k] =  strdup(const_cast<char *>(arg.c_str()));
 			}
-			c =  strdup(const_cast<char *>(arg.c_str()));
 		}
 
 		void changeDir(string newPath) {
@@ -118,23 +122,39 @@ class Shell {
 
 		}
 
+		void printArgs(char* a[]) {
+			cout << "[";
+			for (int i =0; i< args_len; i++) {
+				cout << a[i] << " ";
+			}
+			cout << "]" << endl;
+		}
 
+		void cleanMemory(char* arg[]) {
+			// for (int i =0; i<args_len; i++)
+			// 	delete [] arg[i];
+			// delete [] arg;
+			
+			args_len = 0;
+			cin.clear();
+		}
 
-		void tokenize(char *c, char *argv[]) {
+		void tokenize(char *c, char *arg[]) {
 			while (*c != '\0') {
 				while (*c == ' ' || *c == '\t' || *c == '\n') {
 					*c++ = '\0'; args_len++;
 				}
-				*argv++ = c;
+				*arg++ = c;
 				while (*c != '\0' && *c != ' ' && *c != '\t' && *c != '\n') {
 					c++;
 				}
 			}
-			*argv = '\0';
+			args_len++;
+			*arg = '\0';
 		}
 
 
-		void runProcess(char *argv[]) {
+		void runProcess(char *arg[]) {
 			pid_t pid;
 			int check;
 
@@ -150,7 +170,7 @@ class Shell {
 
 				// child process
 				case 0: {										
-					if(execvp(*argv, argv) < 0) {
+					if(execvp(*arg, arg) < 0) {
 						perror("Execvp");
 						//return EXIT_FAILURE;
 						exit(1);
@@ -177,10 +197,6 @@ class Shell {
 		~Shell() {}
 
 		void read() {
-			//clean 
-			args_len = 0;
-			cin.clear();
-
 			cout << "$_EBash "+path+ ": ";
 			cin.getline(command, SIZE);
 		}
@@ -189,9 +205,7 @@ class Shell {
 		
 			Shell::tokenize(command, args);
 
-			// parsing
-			for (int k=1; k < args_len; k++) 
-				Shell::parsing(args[k]);
+			Shell::parsing(args);
 
 			if ( (strcmp(args[0], "exit") == 0) || cin.eof()) 
 				{ exit(0); } 
@@ -220,17 +234,18 @@ class Shell {
 				Shell::eval(command);
 
 				cout << "\n\t[[=== Time: { " << (double)(clock() - exec_time) / CLOCKS_PER_SEC << "sec } Status: { " << proc_status << " } ===]]" << endl; 
+
+				Shell::cleanMemory(args);
 			}
 		}
 };
 
 // ############################################# TMP TEST ############
 
-int main(int argc, char* argv[]) {
+int main() {
 	Shell* s = new Shell;
 	s->start();	
 	delete s;
-
 
 
 	return 0;
