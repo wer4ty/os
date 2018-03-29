@@ -21,9 +21,8 @@ class Shell {
 		string command;
 		string home;
 		int chdir_status;
-		int proc_status = 0;
+		int proc_status;
 		clock_t exec_time;
-		int exit_status = 0;
 
 		vector<string> tokens;
 		char ** args;
@@ -163,18 +162,18 @@ class Shell {
 		}
 
 		void runProcess(vector<string> v) {
-			int pid;
+			pid_t pid;
 
 			// prepare to run external command
 			
 			convertTokensToArgs(tokens);
-			//printArgs();
+			printArgs();
 
 			switch(pid = fork()) {
 				
 				case -1:
 					{
-					cout << "Error creating process" << endl;
+					perror("Fork Error:");
 					exit(-1);
 					}
 
@@ -194,8 +193,10 @@ class Shell {
 						}
 						
 					 else { // regular process (wait while child process finish)  
-						waitpid(pid, &proc_status, 0);
-						exit_status = WEXITSTATUS(proc_status);
+						
+						//wait(&proc_status);
+						waitpid(-1, &proc_status,0);
+						//exit_status = WEXITSTATUS(proc_status);
 						}
 
 					break;
@@ -252,7 +253,7 @@ class Shell {
 				exec_time = clock();
 				Shell::eval(command);
 
-				cout << "\n\t[[=== Time: { " << (double)(clock() - exec_time) / CLOCKS_PER_SEC << "sec } Status: { " << exit_status << " } ===]]" << endl; 
+				cout << "\n\t[[=== Time: { " << (double)(clock() - exec_time) / CLOCKS_PER_SEC << "sec } Status: { " << proc_status << " } ===]]" << endl; 
 			}
 		}
 };
