@@ -190,6 +190,7 @@ class Shell {
 						// deamon
 						if (deamon_flag) {
 							cout << "[" << pid << "]" << endl;
+							cout << endl;
 						}
 
 						// regular process
