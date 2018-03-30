@@ -1,12 +1,10 @@
 #include <iostream>
 #include <unistd.h>
 #include <string>
-#include <list>
 #include <cstring>
-#include <cstdlib>
+//#include <cstdlib>
 #include <errno.h>
 #include <pwd.h>
-#include <vector>
 #include <wait.h>
 #include <sys/types.h>
 #include <time.h>
